@@ -1,6 +1,9 @@
 #include <iostream>
 #include <math.h>
+#include <iomanip>
 #include <algorithm>
+#include <sstream>
+#include <string>
 #define MAXSIZE 100
 #define MAXPERMUTS 100000
 
@@ -8,13 +11,19 @@ using namespace std;
 
 int factorial(int n);
 int makePermuts(int *permuts , int size);
-float makeTransposeMatrix(int print, int size, float matrixA[MAXSIZE][MAXSIZE], float matrixAt[MAXSIZE][MAXSIZE]);
-float makeCofactorMatrix(int print, int size, float matrixA[MAXSIZE][MAXSIZE], float matrixCo[MAXSIZE][MAXSIZE]);
-float makeInverseMatrix(int print, int size, float matrixA[MAXSIZE][MAXSIZE], float matrixInv[MAXSIZE][MAXSIZE]);
-float findCofactor(int print, int size, float matrixA[MAXSIZE][MAXSIZE], int line, int column);
-float findDeterminant(int print, int size, float matrixA[MAXSIZE][MAXSIZE]);
-float printMatrix(int size, float matrixA[MAXSIZE][MAXSIZE]);
-float getMatrix(int *sizePointer, float matrix[MAXSIZE][MAXSIZE]);
+double makeTransposeMatrix(int print, int size, double matrixA[MAXSIZE][MAXSIZE], double matrixAt[MAXSIZE][MAXSIZE]);
+double makeCofactorMatrix(int print, int size, double matrixA[MAXSIZE][MAXSIZE], double matrixCo[MAXSIZE][MAXSIZE]);
+double makeInverseMatrix(int print, int size, double matrixA[MAXSIZE][MAXSIZE], double matrixInv[MAXSIZE][MAXSIZE]);
+double makeInverseMatrixByScaling(int print, int size, double matrixA[MAXSIZE][MAXSIZE], double matrixInv[MAXSIZE][MAXSIZE]);
+double findCofactor(int print, int size, double matrixA[MAXSIZE][MAXSIZE], int line, int column);
+double findDeterminantByTriangle(int print, int size, double matrixA[MAXSIZE][MAXSIZE]);
+double findDeterminant(int print, int size, double matrixA[MAXSIZE][MAXSIZE]);
+double printMatrix(int size, double matrixA[MAXSIZE][MAXSIZE], int how);
+double getMatrix(int *sizePointer, double matrix[MAXSIZE][MAXSIZE], int *lines, int *columns);
+double swapLine(int size, int line1, int line2, double matrixA[MAXSIZE][MAXSIZE], double matrixRes[MAXSIZE][MAXSIZE]);
+double swapColumn(int size, int column1, int column2, double matrixA[MAXSIZE][MAXSIZE], double matrixRes[MAXSIZE][MAXSIZE]);
+double multiplyLine(int size, int line, double k, double matrixA[MAXSIZE][MAXSIZE], double matrixRes[MAXSIZE][MAXSIZE]);
+double multiplyAndSumLines(int size, int line1, int line2, double k, double matrixA[MAXSIZE][MAXSIZE], double matrixRes[MAXSIZE][MAXSIZE]);
 
 
 int factorial(int n = 0){
@@ -49,7 +58,7 @@ int makePermuts(int *permuts, int size){
     return 0;
 }
 
-float makeTransposeMatrix(int print, int size, float matrixA[MAXSIZE][MAXSIZE], float matrixAt[MAXSIZE][MAXSIZE]){
+double makeTransposeMatrix(int print, int size, double matrixA[MAXSIZE][MAXSIZE], double matrixAt[MAXSIZE][MAXSIZE]){
     int i, j;
 
     for(i=0; i<size; i++){
@@ -61,8 +70,8 @@ float makeTransposeMatrix(int print, int size, float matrixA[MAXSIZE][MAXSIZE], 
     return 0;
 }
 
-float makeCofactorMatrix(int print, int size, float matrixA[MAXSIZE][MAXSIZE], float matrixCo[MAXSIZE][MAXSIZE]){
-    float cofac;
+double makeCofactorMatrix(int print, int size, double matrixA[MAXSIZE][MAXSIZE], double matrixCo[MAXSIZE][MAXSIZE]){
+    double cofac;
     int i, j;
 
     for(i=0; i<size; i++){
@@ -76,9 +85,9 @@ float makeCofactorMatrix(int print, int size, float matrixA[MAXSIZE][MAXSIZE], f
     return 0;
 }
 
-float makeInverseMatrix(int print, int size, float matrixA[MAXSIZE][MAXSIZE], float matrixInv[MAXSIZE][MAXSIZE]){
+double makeInverseMatrix(int print, int size, double matrixA[MAXSIZE][MAXSIZE], double matrixInv[MAXSIZE][MAXSIZE]){
 
-    float matrixCo[MAXSIZE][MAXSIZE], matrixCoT[MAXSIZE][MAXSIZE], determinant;
+    double matrixCo[MAXSIZE][MAXSIZE], matrixCoT[MAXSIZE][MAXSIZE], determinant;
     int i,j;
 
     determinant = findDeterminant(0, size, matrixA);
@@ -90,13 +99,13 @@ float makeInverseMatrix(int print, int size, float matrixA[MAXSIZE][MAXSIZE], fl
     makeCofactorMatrix(0, size, matrixA, matrixCo);
     if(print == 1){
         cout << "Cofactor Matrix:";
-        printMatrix(size, matrixCo);
+        printMatrix(size, matrixCo, 0);
     }
 
     makeTransposeMatrix(0, size, matrixCo, matrixCoT);
     if(print == 1){
         cout << "\n\nAdjunct Matrix (cofactor transpose):";
-        printMatrix(size, matrixCoT);
+        printMatrix(size, matrixCoT, 0);
     }
 
     for(i=0; i<size; i++){
@@ -108,10 +117,79 @@ float makeInverseMatrix(int print, int size, float matrixA[MAXSIZE][MAXSIZE], fl
     return 0;
 }
 
-float findCofactor(int print, int size, float matrixA[MAXSIZE][MAXSIZE], int line, int column){
+double makeInverseMatrixByScaling(int print, int size, double matrixA[MAXSIZE][MAXSIZE], double matrixInv[MAXSIZE][MAXSIZE]){
+    double k, determinant = 0;
+    int i, j;
+
+    determinant = findDeterminant(0, size, matrixA);
+    if(determinant == 0){
+        cout << "There is no inverse!\n";
+        return 0;
+    }
+
+    for(i=0; i<size; i++){
+        for(j=0; j<size; j++){
+            matrixInv[i][j] = matrixA[i][j];
+        }
+    }
+
+    for(i=0; i<size; i++){
+        for(j=size; j<size*2; j++){
+            matrixInv[i][j] = 0;
+            matrixInv[i][i+size] = 1;
+        }
+    }
+
+    for(i=0; i<size; i++){
+
+            if(matrixInv[i][i] == 0){
+                swapLine(size, i, i+1, matrixInv, matrixInv);
+                if(print==1){
+                    cout << "\nSwaping lines " << i+1 << " and " << i+2;
+                    printMatrix(size, matrixInv, 1);
+                    cout << endl;
+                }
+            }
+
+            if(matrixInv[i][i] != 0){
+                k = 1/matrixInv[i][i];
+                multiplyLine(size, i, k, matrixInv, matrixInv);
+                if(print==1){
+                    cout << "\nMultiplying line " << i+1 << " by " << k;
+                    printMatrix(size, matrixInv, 1);
+                    cout << endl;
+                }
+            }
+
+            for(j=0; j<size; j++){
+                if(j != i){
+                    if(matrixInv[j][i] != 0){
+                        k = -matrixInv[j][i]/matrixInv[i][i];
+                        multiplyAndSumLines(size, i, j, k, matrixInv, matrixInv);
+                        if(print==1){
+                            cout << "\nMultiplying line " << i+1 << " by " << k << " and adding to line " << j+1;
+                            printMatrix(size, matrixInv, 1);
+                            cout << endl;
+                        }
+                    }
+                }
+            }    
+
+    }
+
+    for(i=0; i<size; i++){
+        for(j=0; j<size*2; j++){
+            matrixInv[i][j] = matrixInv[i][j+size];
+        }
+    }
+
+    return 0; 
+}
+
+double findCofactor(int print, int size, double matrixA[MAXSIZE][MAXSIZE], int line, int column){
 
     int i, j, jumpi, jumpj;
-    float matrixCofDet[MAXSIZE][MAXSIZE], determinant, cofac;
+    double matrixCofDet[MAXSIZE][MAXSIZE], determinant, cofac;
 
     jumpi = 0;
     jumpj = 0;
@@ -145,7 +223,6 @@ float findCofactor(int print, int size, float matrixA[MAXSIZE][MAXSIZE], int lin
     determinant = findDeterminant(print, size-1, matrixCofDet);
 
     cofac = pow((-1),line+column) * determinant;
-    if(cofac == -0){cofac = 0;} //bug fix
 
     if(print==1){
         cout << "\n\n Calculating: \n";
@@ -157,9 +234,65 @@ float findCofactor(int print, int size, float matrixA[MAXSIZE][MAXSIZE], int lin
     return cofac;
 }
 
-float findDeterminant(int print, int size, float matrixA[MAXSIZE][MAXSIZE]){
+double findDeterminantByTriangle(int print, int size, double matrixA[MAXSIZE][MAXSIZE]){
 
-    float determinant = 0, matrixElement = 1;
+    double determinant = 1, bufferMatrix[MAXSIZE][MAXSIZE], k = 1;
+    int i, j, swaps = 0;
+
+    for(i=0; i<size; i++){
+        for(j=0; j<size; j++){
+            bufferMatrix[i][j] = matrixA[i][j];
+        }
+    }
+
+    for(i=0; i<size-1; i++){
+
+            if(bufferMatrix[i][i] == 0){
+
+                swapLine(size, i, i+1, bufferMatrix, bufferMatrix);
+                swaps++;
+                if(print==1){
+                    cout << "\nSwaping lines " << i+1 << " and " << i+2;
+                    printMatrix(size, bufferMatrix, 0);
+                    cout << endl;
+                }
+
+            }
+
+            for(j=1; j<size-i; j++){
+                if(bufferMatrix[i+j][i] != 0){
+                    k = -bufferMatrix[i+j][i]/bufferMatrix[i][i];
+                    multiplyAndSumLines(size, i, i+j, k, bufferMatrix, bufferMatrix);
+                    if(print==1){
+                        cout << "\nMultiplying line " << i+1 << " by " << k << " and adding to line " << i+j+1;
+                        printMatrix(size, bufferMatrix, 0);
+                        cout << endl;
+                    }
+                }
+            }    
+    }
+
+    for(i=0; i<size; i++){
+        determinant = bufferMatrix[i][i]*determinant;
+    }
+
+    if(print==1){
+        cout << "\nMultiplying the main diagonal" << endl << determinant << endl;
+        cout << "\nNumber of line swaps" << endl << swaps << endl;
+    }
+
+    determinant = pow((-1), swaps) * determinant;
+
+    if(print==1){
+        cout << "\nDeterminant" << endl << " = " << determinant << endl;
+    }
+
+    return determinant; 
+}
+
+double findDeterminant(int print, int size, double matrixA[MAXSIZE][MAXSIZE]){
+
+    double determinant = 0, matrixElement = 1;
     int inv = 1, i, j, k, l, p;
     int permuts[MAXPERMUTS];
     int permutations = factorial(size);
@@ -201,40 +334,179 @@ float findDeterminant(int print, int size, float matrixA[MAXSIZE][MAXSIZE]){
     return determinant;
 }
 
-float printMatrix(int size, float matrixA[MAXSIZE][MAXSIZE]){
-    
+double printMatrix(int size, double matrixA[MAXSIZE][MAXSIZE], int how){ 
     int i,j;
 
-    for(i=0; i<size; i++){
-        cout << endl;
-        for(j=0; j<size; j++){
-            cout << matrixA[i][j] << " ";
+    if(how == 0){
+        for(i=0; i<size; i++){
+            cout << endl;
+            for(j=0; j<size; j++){
+                cout << setw(6) << matrixA[i][j] << " ";
+            }
+        }
+    }
+
+    if(how == 1){
+        for(i=0; i<size; i++){
+            cout << endl;
+            for(j=0; j<size*2; j++){
+                cout << setw(6) << matrixA[i][j] << " ";
+            }
         }
     }
 
     return 0; 
 }
 
-float getMatrix(int *sizePointer, float matrix[MAXSIZE][MAXSIZE]){
+double printMatrix(int lines, int columns, double matrixA[MAXSIZE][MAXSIZE], int how){ 
+    int i,j;
 
-    float matrixA[MAXSIZE][MAXSIZE];
-    int i, j, size;
-    
-    //Get size
-    cout << "Insert matrix size NxN: ";
-    cin >> size;
-
-    //Get elements
-    cout << "\nInsert matrix elements (separated by enter):\n";
-    for(i=0; i<size; i++){
-        cout << "Column " << i+1 << ":" << endl;
-        for(j=0; j<size; j++){
-            cout << " ";
-            cin >> matrix[j][i];
+    if(how == 0){
+        for(i=0; i<columns; i++){
+            cout << endl;
+            for(j=0; j<lines; j++){
+                cout << setw(6) << matrixA[i][j] << " ";
+            }
         }
     }
 
-    *sizePointer = size;
+    return 0;
+}
+
+double getMatrix(int *msize, double matrix[MAXSIZE][MAXSIZE], int *lines, int *columns){
+
+    int i, j, option;
+    *msize = 0;
+    
+    for(;;){
+
+        cout << "Select an option:" << endl;
+        cout << "1 - Square Matrix" << endl;
+        cout << "2 - Any size Matrix" << endl;
+
+        fflush(stdin);
+        cin >> option;
+
+        if(option == 1){
+
+            //Get size
+            cout << "\nInsert matrix size (N x N): ";
+            cin >> *msize;
+
+            //Get elements
+            cout << "\nInsert matrix elements (separated by space) and hit enter:\n";
+            
+            for(i=0;i<*msize;i++){
+                cout << " Line " << i+1 << ":\n ";
+                for(j=0;j<*msize;j++){
+                    scanf("%lf", &matrix[i][j]);
+                } 
+            }
+
+            return *msize;
+        }
+
+        if(option == 2){
+
+            //Get size
+            cout << "\nInsert number of lines (I x j): ";
+            cin >> *lines;
+
+            //Get size
+            cout << "\nInsert number of columns (i x J): ";
+            cin >> *columns;
+
+            //Get elements
+            cout << "\nInsert matrix elements (separated by space) and hit enter:\n";
+            
+            for(i=0;i<*lines;i++){
+                cout << " Line " << i+1 << ":\n ";
+                for(j=0;j<*columns;j++){
+                    scanf("%lf", &matrix[i][j]);
+                }
+            }
+
+            return 0;
+        }
+ 
+    }
+       
+    
+}
+
+double swapLine(int size, int line1, int line2, double matrixA[MAXSIZE][MAXSIZE], double matrixRes[MAXSIZE][MAXSIZE]){
+    int i, j;
+    double buffer[size];
+
+    for(i=0; i<size; i++){
+        for(j=0; j<size*2; j++){
+            matrixRes[j][i] = matrixA[j][i];
+        }
+    }
+    
+    for(i=0; i<size*2; i++){
+        buffer[size] = matrixA[line1][i];
+        matrixRes[line1][i] = matrixA[line2][i];
+        matrixRes[line2][i] = buffer[size];
+
+    }
+
+    return 0;
+}
+
+double swapColumn(int size, int column1, int column2, double matrixA[MAXSIZE][MAXSIZE], double matrixRes[MAXSIZE][MAXSIZE]){
+    int i, j;
+    double buffer[size];
+
+    for(i=0; i<size; i++){
+        for(j=0; j<size; j++){
+            matrixRes[j][i] = matrixA[j][i];
+        }
+    }
+    
+    for(i=0; i<size; i++){
+        buffer[size] = matrixA[i][column1];
+        matrixRes[i][column1] = matrixA[i][column2];
+        matrixRes[i][column2] = buffer[size];
+    }
+
+    return 0;
+}
+
+double multiplyLine(int size, int line, double k, double matrixA[MAXSIZE][MAXSIZE], double matrixRes[MAXSIZE][MAXSIZE]){
+    int i, j;
+
+    for(i=0; i<size*2; i++){
+        for(j=0; j<size; j++){
+            matrixRes[j][i] = matrixA[j][i];
+        }
+    }
+    
+    for(i=0; i<size*2; i++){
+        matrixRes[line][i] = matrixA[line][i]*k;
+    }
+
+    return 0;
+}
+
+double multiplyAndSumLines(int size, int line1, int line2, double k, double matrixA[MAXSIZE][MAXSIZE], double matrixRes[MAXSIZE][MAXSIZE]){
+
+    double buffer[size*2];
+    int i,j;
+
+    for(i=0; i<size; i++){
+        for(j=0; j<size*2; j++){
+            matrixRes[j][i] = matrixA[j][i];
+        }
+    }
+
+    for(i=0; i<size*2; i++){
+        buffer[i] = matrixA[line1][i]*k;
+    }
+
+    for(i=0; i<size*2; i++){
+        matrixRes[line2][i] = buffer[i] + matrixA[line2][i];
+    }
 
     return 0;
 }

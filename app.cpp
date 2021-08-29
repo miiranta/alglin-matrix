@@ -1,54 +1,50 @@
 #include <iostream>
-#include "functions.hpp"
-#define MAXSIZE 100
+#include "handler.hpp"
 
 using namespace std;
 
+//LOOP?
+int loop = 1;
+
 int main(){
-
-//vars
-int i, j;
-int size = 1;
-float matrixA[MAXSIZE][MAXSIZE], matrixAt[MAXSIZE][MAXSIZE], matrixCo[MAXSIZE][MAXSIZE], matrixInv[MAXSIZE][MAXSIZE], determinant, cofac; 
-
-
-cout << "\n================================\n\n";
-
-    getMatrix(&size, matrixA);
-
-cout << "\n================================\n\n";
-
-    //Print A
-    cout << "Matrix A:";
-    printMatrix(size, matrixA);
-
-    //Print A transpose
-    cout << "\n\nMatrix A Transpose:";
-    makeTransposeMatrix(1, size, matrixA, matrixAt);
-    printMatrix(size, matrixAt);
-
-cout << "\n\n================================\n\n";
-
-    //Determinant
-    cout << "Determinant: \n";
-    determinant = findDeterminant(1, size, matrixA);
-
-cout << "\n\n================================\n\n";
-
-    //Cofactor
-    cout << "Calculating Cofactors: \n";
-    makeCofactorMatrix(1, size, matrixA, matrixCo);
-    cout << "\n\nCofactor Matrix:";
-    printMatrix(size, matrixCo);
-
-cout << "\n\n================================\n\n";
     
-    //Inverse
-    makeInverseMatrix(1, size, matrixA, matrixInv);
-    cout << "\n\nInverse Matrix: ";
-    printMatrix(size, matrixInv);
+    int close = 0, option = 0, Aset = 0, Bset = 0;
 
-cout << "\n\n================================\n\n";
+    do{
+
+        displayOptions();
+        fflush(stdin);
+        cin >> option;
+
+        if(option == 0){close = 1;}
+
+        if(option == 1){
+            setMatrix();
+            cin >> option;
+            if(option == 1){Aset = setMatrixA();}
+            if(option == 2 && Aset >= 1){Bset = setMatrixB();}
+        }
+
+        if(option == 2 && Aset >= 2){displayTransposedMatrix();}
+
+        if(option == 3 && Aset >= 2){displayCofactorMatrix();}
+
+        if(option == 4 && Aset >= 2){
+            displayInverseMatrix();
+            cin >> option;
+            if(option == 1){displayInverseMatrixByCofactor();}
+            if(option == 2){displayInverseMatrixByScaling();}
+        }
+
+        if(option == 5 && Aset >= 2){
+            displayDeterminant();
+            cin >> option;
+            if(option == 1){displayDeterminantByPermutation();}
+            if(option == 2){displayDeterminantByTriangle();}
+        }
+
+    }while(loop == 1 && close == 0);
+
     
 }
 
